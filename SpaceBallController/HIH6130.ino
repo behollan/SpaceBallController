@@ -1,4 +1,6 @@
-byte fetch_humidity_temperature(unsigned int *p_H_dat, unsigned int *p_T_dat)
+// Based on code from https://phanderson.com/arduino/hih6130.html
+
+byte fetch_humidity_temperature(unsigned int *p_H_dat, unsigned int *p_T_dat) // Main interfacing for HIH6130. Grabs I2C data and returns
 {
       byte address, Hum_H, Hum_L, Temp_H, Temp_L, _status;
       unsigned int H_dat, T_dat;
@@ -24,7 +26,7 @@ byte fetch_humidity_temperature(unsigned int *p_H_dat, unsigned int *p_T_dat)
       return(_status);
 }
    
-void print_float(float f, int num_digits)
+void print_float(float f, int num_digits) //Better print float function. Allows specification of sig figs
 {
     int f_int;
     int pows_of_ten[4] = {1, 10, 100, 1000};
