@@ -1,4 +1,4 @@
-float * tempMeasure(){
+float * tempMeasure(){ //Measures temperature from 4 temp sensors and I2C sensor, returns array of temperatures
   byte _status;
   unsigned int H_dat, T_dat;
   float RH, T_C;
@@ -15,7 +15,7 @@ float * tempMeasure(){
   data[4] = T_C;
   return(data);
 }
-float humidity(){
+float humidity(){ //Reads and returns HIH6130 relative humidity
   byte _status;
   unsigned int H_dat, T_dat;
   float RH, T_C;
