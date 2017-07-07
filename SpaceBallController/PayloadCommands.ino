@@ -35,4 +35,16 @@ float humidity(){ //Reads and returns HIH6130 relative humidity
   return(RH);
 }
 */
+void tempControl(float temp){
+  
+  if(prevtemp < highTemp && temp >= highTemp) state = 0;
+  if(prevtemp > lowTemp && temp <= lowTemp) state = 1;
+
+  digitalWrite(FETpin,state);
+
+  Serial.print(state);
+
+  prevtemp = temp;
+  
+}
 

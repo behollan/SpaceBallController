@@ -19,6 +19,13 @@ void print_float(float f, int num_digits);
 #define TRUE 1
 #define FALSE 0
 
+//Variable initializations
+bool state = 0;
+float prevtemp;
+int highTemp = 15;
+int lowTemp = 10;
+int FETpin = 13;
+
 // Analog Temp Sensor Pins
 int temp1 = A0;
 int temp2 = A1;
@@ -26,17 +33,18 @@ int temp3 = A2;
 int temp4 = A3;
 int temp5 = A4;
 
-
 //Object creation
-//SoftwareSerial OpenLog(2, 3); // RX, TX
+SoftwareSerial OpenLog(2, 3); // RX, TX
 //SoftwareSerial ssIridium(4, 5); // RockBLOCK serial port on 4/5 (RX, TX)
 //IridiumSBD isbd(ssIridium, 6);   // RockBLOCK SLEEP pin on 10
 
 void setup() {
   Serial.begin(9600); //Serial monitor
-  //OpenLog.begin(9600); //Data logging
+  OpenLog.begin(9600); //Data logging
   Serial.println("Init Complete. Printing temp data.");
+  pinMode(FETpin,OUTPUT); // FET pin 
 }
+
 
 void loop() {    
     float *tempPoint;
@@ -46,21 +54,21 @@ void loop() {
     float tempData [5] = {*(tempPoint + 0),*(tempPoint + 1),*(tempPoint + 2),*(tempPoint + 3),*(tempPoint + 4)}; 
     int arrayLength = sizeof(tempData)/sizeof(tempData[0]);
 
-    //Serial.println(*(tempPoint + 0));
-    
-    //Serial.println(tempPoint);
+    tempControl(tempData[0]);        
     
     for (int i=0; i < arrayLength; i++){ //For each element of the array, print and log it
       Serial.print(tempData[i]);
       Serial.print(", ");
       
-      //OpenLog.print(tempData[i]);
-      //OpenLog.print(",");
+      OpenLog.print(tempData[i]);
+      OpenLog.print(",");
     }
     //float hum = humidity(); //Get humidity data
     //OpenLog.println( hum ); //Log humidity 
     //Serial.println( hum ); //Print humidity
-    Serial.println("");
+    
+    Serial.println();
+    OpenLog.println();
     delay(100);
 }
 
