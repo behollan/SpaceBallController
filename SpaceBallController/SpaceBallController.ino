@@ -1,13 +1,10 @@
-/*TODO::
-- Setup Iridium transmission in main loop
-- Add servo control for cooler
-*/
 //Library Includes
 #include <IridiumSBD.h> //Download from https://github.com/mikalhart/IridiumSBD
 #include <Wire.h> //I2C library, reserves A4 and A5 for I2C
 #include <SoftwareSerial.h>
 #include <stdio.h>
 #include <Servo.h> 
+#include <SparkFunMPL3115A2.h>
  
 //Function declarations
 float * tempMeasure();
@@ -40,19 +37,25 @@ int tweetTime =60000;
 #define temp4  A3 //External
 #define temp5  A4 //reserved
 
-//Object creation
+//Object instance creation
 SoftwareSerial OpenLog(2, 3); // RX, TX
 SoftwareSerial ssIridium(4, 5); // RockBLOCK serial port on 4/5 (RX, TX)
 IridiumSBD isbd(ssIridium, 6);   // RockBLOCK SLEEP pin on 6
 Servo servo1;
 Servo servo2;  
+MPL3115A2 pres;
 
 void setup() {
+  Wire.begin();        // Join i2c bus
   Serial.begin(9600); //Serial monitor
   OpenLog.begin(9600); //Data logging
   servoInit(); //Servo intitialization
   pinMode(FETpin,OUTPUT); // FET pin 
-
+  pres.begin(); //Bring Altimeter online
+  pres.setModeAltimeter(); //Set altimeter mode
+  pres.setOversampleRate(7); //Oversample to recommended 128
+  pres.enableEventFlags(); //Pressure and temp event flags
+  
   isbd.setPowerProfile(1); // low current
   isbd.begin(); // wake up, prepare for comm
   prevTime=millis();
@@ -73,6 +76,8 @@ void loop() {
     float goProTemp = tempData[2]; //Store goPro temperature in a more friendly variable name
     float extTemp = tempData[3]; //Store external temperature in a more friendly variable name
 
+    float altitude = pres.readAltitudeFt();
+
     tempControl(batteryTemp);        
     
     for (int i=0; i < arrayLength; i++){ //For each element of the array, print and log it
@@ -82,13 +87,18 @@ void loop() {
       OpenLog.print(tempData[i]);
       OpenLog.print(",");
     }
+
+    Serial.print(altitude);
+    OpenLog.print(altitude);
     
     Serial.println();
     OpenLog.println();
 
-    while (/*canTemp <= 0 &&*/ cycle == 0)  //need to figure out a value for temperature
+    if ((altitude > 75000 || canTemp <= 0) && cycle == 0)  //need to figure out a value for temperature
       {
         servoSpin();
+        Serial.println("Cooler Lowered");
+        OpenLog.println("Cooler Lowered");
         cycle++;
       }
 

@@ -11,6 +11,8 @@ bool  ISBDCallback(){ //Place things here to run during the transmit attempt, pr
     float goProTemp = tempData[2]; //Store goPro temperature in a more friendly variable name
     float extTemp = tempData[3]; //Store external temperature in a more friendly variable name
 
+    float altitude = pres.readAltitudeFt();
+
     tempControl(batteryTemp);        
     
     for (int i=0; i < arrayLength; i++){ //For each element of the array, print and log it
@@ -20,13 +22,18 @@ bool  ISBDCallback(){ //Place things here to run during the transmit attempt, pr
       OpenLog.print(tempData[i]);
       OpenLog.print(",");
     }
+
+    Serial.print(altitude);
+    OpenLog.print(altitude);
     
     Serial.println();
     OpenLog.println();
 
-    while (/*canTemp <= 0 &&*/ cycle == 0)  //need to figure out a value for temperature
+    if ((altitude > 75000 || canTemp <= 0) && cycle == 0)  //need to figure out a value for temperature
       {
         servoSpin();
+        Serial.println("Cooler Lowered");
+        OpenLog.println("Cooler Lowered");
         cycle++;
       } 
  
