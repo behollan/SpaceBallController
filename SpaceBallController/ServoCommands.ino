@@ -4,11 +4,12 @@ void servoInit(){
 }
 
 void servoSpin(){
-  for(int angle = 0; angle < 720; angle++)  //play around with 720 to get the rotation we need
-  {                                  
-    servo1.write(angle);
-    servo2.write(angle);                                   
-  } 
+                             
+    servo1.write(45); //play around with 45 to get the rotation we need
+    servo2.write(45);   
+    delay(3000); //Set length of rotation
+    servo1.detach();
+    servo2.detach();
 }
 
 

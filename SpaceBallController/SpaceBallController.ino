@@ -23,6 +23,8 @@ void servoSpin();
 bool state = 0;
 float prevtemp;
 int cycle = 0; //ensures the servos only initiate once 
+int prevTime;
+int tweetTime =60000;
 
 #define highTemp  15
 #define lowTemp  10
@@ -40,8 +42,8 @@ int cycle = 0; //ensures the servos only initiate once
 
 //Object creation
 SoftwareSerial OpenLog(2, 3); // RX, TX
-//SoftwareSerial ssIridium(4, 5); // RockBLOCK serial port on 4/5 (RX, TX)
-//IridiumSBD isbd(ssIridium, 6);   // RockBLOCK SLEEP pin on 10
+SoftwareSerial ssIridium(4, 5); // RockBLOCK serial port on 4/5 (RX, TX)
+IridiumSBD isbd(ssIridium, 6);   // RockBLOCK SLEEP pin on 6
 Servo servo1;
 Servo servo2;  
 
@@ -50,6 +52,10 @@ void setup() {
   OpenLog.begin(9600); //Data logging
   servoInit(); //Servo intitialization
   pinMode(FETpin,OUTPUT); // FET pin 
+
+  isbd.setPowerProfile(1); // low current
+  isbd.begin(); // wake up, prepare for comm
+  prevTime=millis();
   Serial.println("Init Complete.");
 }
 
@@ -80,9 +86,16 @@ void loop() {
     Serial.println();
     OpenLog.println();
 
-    if (canTemp <= 0 && cycle == 0)  //need to figure out a value for temperature
+    while (/*canTemp <= 0 &&*/ cycle == 0)  //need to figure out a value for temperature
       {
         servoSpin();
         cycle++;
+      }
+
+      char message[15];
+      sprintf(message,"%f",canTemp);
+    
+    if(millis()-prevTime>tweetTime){
+        tweetMessage(message);
       }
  }
