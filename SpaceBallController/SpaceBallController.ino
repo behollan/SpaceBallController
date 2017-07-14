@@ -5,30 +5,35 @@
 #include <stdio.h>
 #include <Servo.h> 
 #include <SparkFunMPL3115A2.h>
- 
-//Function declarations
-float * tempMeasure();
-byte fetch_humidity_temperature(unsigned int *p_Humidity, unsigned int *p_Temperature);
-void print_float(float f, int num_digits);
-void servoInit();
-void servoSpin();
 
-//Variables defines
-#define TRUE 1
-#define FALSE 0
 
-bool state = 0;
-float prevtemp;
-int cycle = 0; //ensures the servos only initiate once 
-int prevTime;
-int tweetTime =60000;
 
-#define highTemp  15
-#define lowTemp  10
+////////////////////////////////////////////////////////////////////////////
+/*  USER DEFINED VARIABLES HERE. CHANGE THESE TO CHANGE PAYLOAD FUNCTION  */
+////////////////////////////////////////////////////////////////////////////
+
+#define tweetTime 60000       //Length between tweets (in ms)
+#define highTemp  15          //High temperature (when to turn heaters on)
+#define lowTemp  10           //Low temperature (when to turn heaters off)
+#define altitudeCutoff 80000  //Max altitude (ft) for the cooler to be allowed open
+#define rotTime 3000          //Length of time for servo rotation
+#define servoSpeed 45         //Servo speed, 0 being full-speed in one direction, 180 being full speed in the other, and a value near 90 being no movement
+
+//Variable initialization
+bool state = 0;  //Used for heater control
+float prevtemp;  //Used for heater control
+int cycle = 0;   //ensures the servos only initiate once 
+int prevTime;    //Used for tweeting
+#define TRUE 1   //Handy to have
+#define FALSE 0  //Handy to have
+float batteryTemp, canTemp, goProTemp, extTemp, altitude; //data variables
+
+///////////////////
+/* PIN LOCATIONS */
+///////////////////
 
 #define FETpin 13 //Heater FET Control Pin
-#define servoPin1  9 //change X to whatever pwm pin
-#define servoPin2  10 //change Y to whatever pwm pin
+#define servoPin1  9 //Servo PWM pin
 
 // Analog Temp Sensor Pins
 #define temp1  A0 //Battery
@@ -37,75 +42,56 @@ int tweetTime =60000;
 #define temp4  A3 //External
 #define temp5  A4 //reserved
 
-//Object instance creation
+//////////////////////////////
+/* Object instance creation */
+//////////////////////////////
+
 SoftwareSerial OpenLog(2, 3); // RX, TX
-SoftwareSerial ssIridium(4, 5); // RockBLOCK serial port on 4/5 (RX, TX)
+SoftwareSerial ssIridium(4, 5); // RockBLOCK serial port on 4/5 (RX/TX)
 IridiumSBD isbd(ssIridium, 6);   // RockBLOCK SLEEP pin on 6
 Servo servo1;
-Servo servo2;  
 MPL3115A2 pres;
+
+/////////////////
+/* Setup Tasks */
+/////////////////
 
 void setup() {
   Wire.begin();        // Join i2c bus
   Serial.begin(9600); //Serial monitor
   OpenLog.begin(9600); //Data logging
-  servoInit(); //Servo intitialization
-  pinMode(FETpin,OUTPUT); // FET pin 
-  pres.begin(); //Bring Altimeter online
-  pres.setModeAltimeter(); //Set altimeter mode
-  pres.setOversampleRate(7); //Oversample to recommended 128
-  pres.enableEventFlags(); //Pressure and temp event flags
   
-  isbd.setPowerProfile(1); // low current
-  isbd.begin(); // wake up, prepare for comm
-  prevTime=millis();
+  servo1.attach(servoPin1); //Servo intitialization
+  
+  pinMode(FETpin,OUTPUT);   // FET pin 
+  
+  pres.begin();             //Bring Altimeter online
+  pres.setModeAltimeter();  //Set altimeter mode
+  pres.setOversampleRate(7);//Oversample to recommended 128
+  pres.enableEventFlags();  //Pressure and temp event flags
+  
+  isbd.setPowerProfile(1);  // RockBlock low current mode
+  isbd.begin();             //RockBlock wake up, prepare for comm
+  
+  prevTime=millis();  //Used for tweet timer
+  
   Serial.println("Init Complete.");
+  OpenLog.println("Init Complete.");
 }
 
+///////////////
+/* Main loop */
+///////////////
 
 void loop() {    
-    float *tempPoint;
-    tempPoint = tempMeasure(); //Grab the tempMeasure pointer
-    
-    //Build array of temperatureData
-    float tempData [5] = {*(tempPoint + 0),*(tempPoint + 1),*(tempPoint + 2),*(tempPoint + 3),*(tempPoint + 4)}; 
-    int arrayLength = sizeof(tempData)/sizeof(tempData[0]);
+      mainPayload(); //Controls all payload data, logging, heater control, and cooler control
 
-    float batteryTemp = tempData[0]; //Store battery temp in a more friendly variable name
-    float canTemp = tempData[1]; //Store can temperature in a more friendly variable name
-    float goProTemp = tempData[2]; //Store goPro temperature in a more friendly variable name
-    float extTemp = tempData[3]; //Store external temperature in a more friendly variable name
-
-    float altitude = pres.readAltitudeFt();
-
-    tempControl(batteryTemp);        
-    
-    for (int i=0; i < arrayLength; i++){ //For each element of the array, print and log it
-      Serial.print(tempData[i]);
-      Serial.print(", ");
+      char message[15]; //Tweet variable
+      sprintf(message,"%f",canTemp); //Format the float to a string for sending
       
-      OpenLog.print(tempData[i]);
-      OpenLog.print(",");
-    }
-
-    Serial.print(altitude);
-    OpenLog.print(altitude);
-    
-    Serial.println();
-    OpenLog.println();
-
-    if ((altitude > 75000 || canTemp <= 0) && cycle == 0)  //need to figure out a value for temperature
-      {
-        servoSpin();
-        Serial.println("Cooler Lowered");
-        OpenLog.println("Cooler Lowered");
-        cycle++;
+      if(millis()-prevTime>tweetTime){
+          Serial.print("Sending to twitterBot: "); Serial.println(message);
+          OpenLog.print("Sending to twitterBot: "); OpenLog.println(message);
+          isbd.sendSBDText(message); //Send current can temperature to the TwitterBot
       }
-
-      char message[15];
-      sprintf(message,"%f",canTemp);
-    
-    if(millis()-prevTime>tweetTime){
-        tweetMessage(message);
-      }
- }
+}
