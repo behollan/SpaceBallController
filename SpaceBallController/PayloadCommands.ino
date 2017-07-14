@@ -61,7 +61,11 @@ void mainPayload(){
       OpenLog.print(tempData[i]);
       OpenLog.print(",");
     }
+    float altTemp = pres.readTemp();
 
+    Serial.print(altTemp); Serial.print(",");
+    OpenLog.print(altTemp); OpenLog.print(",");
+    
     Serial.println(altitude);
     OpenLog.println(altitude);
     
