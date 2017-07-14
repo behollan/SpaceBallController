@@ -46,7 +46,7 @@ float batteryTemp, canTemp, goProTemp, extTemp, altitude; //data variables
 /* Object instance creation */
 //////////////////////////////
 
-SoftwareSerial OpenLog(2, 3); // RX, TX
+SoftwareSerial OpenLog(3, 2); // Pin pin2 is openlog TX and pin3 is openlog RX
 SoftwareSerial ssIridium(4, 5); // RockBLOCK serial port on 4/5 (RX/TX)
 IridiumSBD isbd(ssIridium, 6);   // RockBLOCK SLEEP pin on 6
 Servo servo1;
