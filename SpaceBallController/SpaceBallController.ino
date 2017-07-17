@@ -16,14 +16,15 @@
 #define highTemp  15          //High temperature (when to turn heaters on)
 #define lowTemp  10           //Low temperature (when to turn heaters off)
 #define altitudeCutoff 80000  //Max altitude (ft) for the cooler to be allowed open
-#define rotTime 3000          //Length of time for servo rotation
-#define servoSpeed 45         //Servo speed, 0 being full-speed in one direction, 180 being full speed in the other, and a value near 90 being no movement
+#define rotTime 1900          //Length of time for servo rotation
+#define servoSpeed 135         //Servo speed, 0 being full-speed in one direction, 180 being full speed in the other, and a value near 90 being no movement
 
 //Variable initialization
 bool state = 0;  //Used for heater control
-float prevtemp;  //Used for heater control
+int prevtemp;  //Used for heater control
 int cycle = 0;   //ensures the servos only initiate once 
-int prevTime;    //Used for tweeting
+unsigned long previousTime;    //Used for tweeting
+int j = 0;
 #define TRUE 1   //Handy to have
 #define FALSE 0  //Handy to have
 float batteryTemp, canTemp, goProTemp, extTemp, altitude; //data variables
@@ -33,7 +34,7 @@ float batteryTemp, canTemp, goProTemp, extTemp, altitude; //data variables
 ///////////////////
 
 #define FETpin 13 //Heater FET Control Pin
-#define servoPin1  9 //Servo PWM pin
+#define servoPin1  9 //Servo PWM pinb 
 
 // Analog Temp Sensor Pins
 #define temp1  A0 //Battery
@@ -48,7 +49,7 @@ float batteryTemp, canTemp, goProTemp, extTemp, altitude; //data variables
 
 SoftwareSerial OpenLog(3, 2); // Pin pin2 is openlog TX and pin3 is openlog RX
 SoftwareSerial ssIridium(4, 5); // RockBLOCK serial port on 4/5 (RX/TX)
-IridiumSBD isbd(ssIridium, 6);   // RockBLOCK SLEEP pin on 6
+IridiumSBD isbd(ssIridium, 8);   // RockBLOCK SLEEP pin on 8
 Servo servo1;
 MPL3115A2 pres;
 
@@ -61,7 +62,6 @@ void setup() {
   Serial.begin(9600); //Serial monitor
   OpenLog.begin(9600); //Data logging
   
-  servo1.attach(servoPin1); //Servo intitialization
   
   pinMode(FETpin,OUTPUT);   // FET pin 
   
@@ -73,7 +73,8 @@ void setup() {
   isbd.setPowerProfile(1);  // RockBlock low current mode
   isbd.begin();             //RockBlock wake up, prepare for comm
   
-  prevTime=millis();  //Used for tweet timer
+  previousTime = millis();  //Used for tweet timer
+  Serial.println(previousTime);
   
   Serial.println("Init Complete.");
   OpenLog.println("Init Complete.");
@@ -86,12 +87,20 @@ void setup() {
 void loop() {    
       mainPayload(); //Controls all payload data, logging, heater control, and cooler control
 
-      char message[15]; //Tweet variable
-      sprintf(message,"%f",canTemp); //Format the float to a string for sending
+      //char message[15]; //Tweet variable
+      //sprintf(message,"%f",canTemp); //Format the float to a string for sending
       
-      if(millis()-prevTime>tweetTime){
-          Serial.print("Sending to twitterBot: "); Serial.println(message);
-          OpenLog.print("Sending to twitterBot: "); OpenLog.println(message);
-          isbd.sendSBDText(message); //Send current can temperature to the TwitterBot
+      char result[8]; // Buffer big enough for 7-character float
+      dtostrf(canTemp, 6, 2, result); // Leave room for too large numbers!
+      
+      Serial.print(millis());Serial.print(", ");Serial.print(previousTime); Serial.print(", ");Serial.println(millis()-previousTime);
+      
+      if((millis()-previousTime>tweetTime) && !ISBD_SUCCESS){
+          previousTime=millis();
+          
+          
+          Serial.print("Sending to twitterBot: "); Serial.println(result);
+          OpenLog.print("Sending to twitterBot: "); OpenLog.println(result);
+          isbd.sendSBDText(result); //Send current can temperature to the TwitterBot
       }
 }

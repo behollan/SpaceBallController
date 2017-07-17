@@ -9,11 +9,10 @@ float * tempMeasure(){ //Measures temperature from 4 temp sensors and I2C sensor
   //data[4] = T_C;
   
   int arrayLength = sizeof(data)/sizeof(data[0]);
-  
   for (int i=0; i < arrayLength; i++){ //For each element of the array, convert to voltage then to temperature
-    data[i]= 100*(data[i]*5/1024-0.5) ;
+    data[i]= 100*(data[i]*5/1024-0.5);
   }
-  return data;
+ return data;
 }
 
 void tempControl(float temp){ //Heater feedback loop
@@ -44,7 +43,6 @@ void mainPayload(){
     //Build array of temperatureData
     float tempData [5] = {*(tempPoint + 0),*(tempPoint + 1),*(tempPoint + 2),*(tempPoint + 3),*(tempPoint + 4)}; 
     int arrayLength = sizeof(tempData)/sizeof(tempData[0]);
-
     batteryTemp = tempData[0]; //Store battery temp in a more friendly variable name
     canTemp = tempData[1]; //Store can temperature in a more friendly variable name
     goProTemp = tempData[2]; //Store goPro temperature in a more friendly variable name
@@ -70,11 +68,17 @@ void mainPayload(){
     OpenLog.println(altitude);
     
 
-    if ((altitude > altitudeCutoff || canTemp <= 0) && cycle == 0)  //need to figure out a value for temperature
+    if ((altitude > altitudeCutoff || canTemp < 0 || altTemp <= -30) && cycle == 0)  //need to figure out a value for temperature
+      {
+      j++;
+      if (j > 100)
       {
         servoSpin();
         Serial.println("Cooler Lowered");
         OpenLog.println("Cooler Lowered");
         cycle++;
+        
       }
   }
+  Serial.print("ISBD Status: ");Serial.println(ISBD_SUCCESS);
+}
